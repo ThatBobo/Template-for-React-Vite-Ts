@@ -5,6 +5,6 @@ export default function App() {
     <BrowserRouter>
       <Routes>
       </Routes>
-    <BrowserRouter/>
+    <BrowserRouter />
   );
 }
