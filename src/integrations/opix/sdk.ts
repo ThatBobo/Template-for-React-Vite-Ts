@@ -2,7 +2,10 @@ const BASE_URL =
   "https://coatunyealgfrmpszpsu.supabase.co/functions/v1";
 
 export class Opix {
-  constructor(private apiKey: string) {}
+  constructor(
+    private clientId: string,
+    private apiKey: string
+  ) {}
 
   private async request<T>(
     method: "GET" | "POST",
@@ -13,9 +16,10 @@ export class Opix {
       method,
       headers: {
         "Authorization": `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
+        "X-Client-ID": this.clientId,
+        "Content-Type": "application/json"
       },
-      body: body ? JSON.stringify(body) : undefined,
+      body: body ? JSON.stringify(body) : undefined
     });
 
     const json = await res.json();
@@ -35,7 +39,14 @@ export class Opix {
     return this.request("GET", "/authorizations-list");
   }
 
-  createAuthorization(payload: any) {
+  createAuthorization(payload: {
+    app_name: string;
+    app_url: string;
+    app_icon?: string;
+    description?: string;
+    redirect_uri: string;
+    scopes: string[];
+  }) {
     return this.request("POST", "/authorizations-create", payload);
   }
 
@@ -48,9 +59,16 @@ export class Opix {
     return this.request("GET", `/events-list${query ? `?${query}` : ""}`);
   }
 
-  trackEvent(payload: any) {
+  trackEvent(payload: {
+    integration_id: string;
+    event_type: string;
+    payload?: any;
+    response?: any;
+    status_code?: number;
+  }) {
     return this.request("POST", "/events-track", payload);
   }
 }
 
-export const createClient = (apiKey: string) => new Opix(apiKey);
+export const createClient = (clientId: string, apiKey: string) =>
+  new Opix(clientId, apiKey);
