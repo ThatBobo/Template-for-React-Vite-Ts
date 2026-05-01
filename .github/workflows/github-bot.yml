@@ -1,0 +1,60 @@
+name: GitHub Bot
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+
+jobs:
+  respond:
+    if: github.event.issue.pull_request
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Read PR info
+        uses: actions/github-script@v7
+        id: pr
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            return pr.data;
+
+      - name: Respond to comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = context.payload.comment.body.toLowerCase();
+            const pr = JSON.parse(process.env.PR_DATA);
+
+            let reply = null;
+
+            if (comment.includes("hello bot")) {
+              reply = "👋 Hey there! I'm your GitHub bot. Let me know if you need help with this PR.";
+            }
+
+            if (comment.includes("explain")) {
+              reply = `🧠 Here's what I understand about this PR:\n\n- **Title:** ${pr.title}\n- **Author:** ${pr.user.login}\n- **Files changed:** ${pr.changed_files}\n\nLet me know if you want a deeper breakdown.`;
+            }
+
+            if (comment.includes("status")) {
+              reply = `📊 PR Status:\n\n- **State:** ${pr.state}\n- **Merged:** ${pr.merged}\n- **Additions:** ${pr.additions}\n- **Deletions:** ${pr.deletions}\n- **Commits:** ${pr.commits}`;
+            }
+
+            if (reply) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: reply
+              });
+            }
+        env:
+          PR_DATA: ${{ steps.pr.outputs.result }}
