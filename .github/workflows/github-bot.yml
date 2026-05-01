@@ -10,51 +10,40 @@ permissions:
   contents: read
 
 jobs:
-  respond:
+  ai_bot:
     if: github.event.issue.pull_request
     runs-on: ubuntu-latest
 
     steps:
-      - name: Read PR info
+      - name: AI-style response
         uses: actions/github-script@v7
-        id: pr
         with:
           script: |
-            const pr = await github.rest.pulls.get({
+            const comment = context.payload.comment.body.trim();
+
+            // Simple "AI-like" behaviour
+            function generateResponse(input) {
+              if (input.length < 3) {
+                return "I saw your message, but it looks a bit short. Want to tell me more?";
+              }
+
+              if (input.toLowerCase().includes("help")) {
+                return "I'm here to help. Tell me what you're trying to understand or fix in this PR.";
+              }
+
+              if (input.toLowerCase().includes("explain")) {
+                return "Sure — this PR changes some code. If you want a deeper explanation, just say what part you're curious about.";
+              }
+
+              // Default AI-style reply
+              return `I read your message: "${input}". What would you like me to do with it?`;
+            }
+
+            const reply = generateResponse(comment);
+
+            await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.issue.number
+              issue_number: context.issue.number,
+              body: reply
             });
-            return pr.data;
-
-      - name: Respond to comment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const comment = context.payload.comment.body.toLowerCase();
-            const pr = JSON.parse(process.env.PR_DATA);
-
-            let reply = null;
-
-            if (comment.includes("hello bot")) {
-              reply = "👋 Hey there! I'm your GitHub bot. Let me know if you need help with this PR.";
-            }
-
-            if (comment.includes("explain")) {
-              reply = `🧠 Here's what I understand about this PR:\n\n- **Title:** ${pr.title}\n- **Author:** ${pr.user.login}\n- **Files changed:** ${pr.changed_files}\n\nLet me know if you want a deeper breakdown.`;
-            }
-
-            if (comment.includes("status")) {
-              reply = `📊 PR Status:\n\n- **State:** ${pr.state}\n- **Merged:** ${pr.merged}\n- **Additions:** ${pr.additions}\n- **Deletions:** ${pr.deletions}\n- **Commits:** ${pr.commits}`;
-            }
-
-            if (reply) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: reply
-              });
-            }
-        env:
-          PR_DATA: ${{ steps.pr.outputs.result }}
